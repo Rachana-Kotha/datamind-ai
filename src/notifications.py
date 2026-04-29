@@ -24,7 +24,18 @@ import urllib.parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+from html import escape as _html_escape
 from typing import Optional, Dict
+
+
+def _safe_url(url: Optional[str]) -> str:
+    """Allow only http(s) absolute URLs or in-app relative ?report= links."""
+    if not url:
+        return ""
+    u = str(url).strip()
+    if u.startswith(("http://", "https://", "?")):
+        return _html_escape(u, quote=True)
+    return ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -67,10 +78,15 @@ def send_notification_email(
         event_type, event_type.title()
     )
 
-    user_name    = user_info.get("name", "Anonymous")
-    user_email   = user_info.get("email", "Not provided")
-    user_company = user_info.get("company", "Not provided")
-    user_role    = user_info.get("role", "Not provided")
+    user_name    = _html_escape(str(user_info.get("name", "Anonymous")))
+    user_email   = _html_escape(str(user_info.get("email", "Not provided")))
+    user_company = _html_escape(str(user_info.get("company", "Not provided")))
+    user_role    = _html_escape(str(user_info.get("role", "Not provided")))
+    dataset_safe = _html_escape(str(dataset_name))
+    format_safe  = _html_escape(str(format_name))
+    event_safe   = _html_escape(event_label)
+    extra_safe   = _html_escape(str(extra_notes)) if extra_notes else ""
+    share_safe   = _safe_url(share_url)
 
     subject = f"🧠 DataMind AI — {event_label}: {dataset_name}"
 
@@ -81,15 +97,15 @@ def send_notification_email(
 
   <div style="background: #4F46E5; padding: 24px 28px;">
     <h1 style="color: white; margin: 0; font-size: 22px;">🧠 DataMind AI</h1>
-    <p style="color: #c4b5fd; margin: 4px 0 0;">{event_label}</p>
+    <p style="color: #c4b5fd; margin: 4px 0 0;">{event_safe}</p>
   </div>
 
   <div style="padding: 24px 28px;">
     <table style="width: 100%; border-collapse: collapse;">
       <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px; width: 40%;">Dataset</td>
-          <td style="padding: 8px 0; font-weight: 600; font-size: 13px; color: #1f2937;">{dataset_name}</td></tr>
+          <td style="padding: 8px 0; font-weight: 600; font-size: 13px; color: #1f2937;">{dataset_safe}</td></tr>
       <tr style="background: #f9fafb;"><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">Format</td>
-          <td style="padding: 8px 0; font-size: 13px; color: #1f2937;">{format_name}</td></tr>
+          <td style="padding: 8px 0; font-size: 13px; color: #1f2937;">{format_safe}</td></tr>
       <tr><td style="padding: 8px 0; color: #6b7280; font-size: 13px;">Time</td>
           <td style="padding: 8px 0; font-size: 13px; color: #1f2937;">{now}</td></tr>
     </table>
@@ -105,8 +121,8 @@ def send_notification_email(
       </p>
     </div>
 
-    {"<div style='margin: 12px 0; padding: 12px; background: #f0fdf4; border-radius: 8px;'><p style='margin: 0; font-size: 12px; color: #15803d;'><b>Share URL:</b> " + share_url + "</p></div>" if share_url else ""}
-    {"<p style='font-size: 12px; color: #6b7280;'>" + extra_notes + "</p>" if extra_notes else ""}
+    {"<div style='margin: 12px 0; padding: 12px; background: #f0fdf4; border-radius: 8px;'><p style='margin: 0; font-size: 12px; color: #15803d;'><b>Share URL:</b> <a href='" + share_safe + "'>" + share_safe + "</a></p></div>" if share_safe else ""}
+    {"<p style='font-size: 12px; color: #6b7280;'>" + extra_safe + "</p>" if extra_safe else ""}
   </div>
 
   <div style="padding: 16px 28px; background: #f9fafb; border-top: 1px solid #e5e7eb;
