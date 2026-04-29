@@ -212,7 +212,7 @@ if run_btn:
     from src.kpi_engine import select_top_kpis, generate_kpi_stories, generate_data_narrative
 
     memory = AgentMemory()
-    orch   = Orchestrator(progress_callback=on_thought)
+    orch   = Orchestrator(progress_callback=on_thought, memory=memory)
     for Cls in [EDAAgent, MLAgent, InsightAgent, CriticAgent, CodeAgent]:
         orch.register_agent(Cls(memory=memory, progress_callback=on_thought))
     orch.register_agent(SynthesisAgent(memory=memory, groq_api_key=groq_key or None,
