@@ -140,7 +140,7 @@ with st.sidebar:
                         ("🔍","Rex","Critic"),("💻","Cleo","Code"),("🧠","Synthesis","Writer")]:
         st.markdown(f"{em} **{nm}** — {rl}")
     st.markdown("---")
-    st.markdown("**[⭐ Star on GitHub](https://github.com/YOUR_USERNAME/datamind-ai)**")
+    st.markdown("**[⭐ Star on GitHub](https://github.com/Rachana-Kotha/datamind-ai)**")
 
 # ── Landing ───────────────────────────────────────────────────────────────────
 if not uploaded:
