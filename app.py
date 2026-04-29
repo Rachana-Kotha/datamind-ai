@@ -14,7 +14,7 @@ Fix: generate bytes on form submit → store in session_state →
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os, sys, io, json
+import os, sys, io, json, tempfile, html
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -168,12 +168,27 @@ if run_btn:
     for k in ["pdf_bytes","docx_bytes","md_bytes","report_generated","user_info"]:
         st.session_state[k] = None
 
-    tmp = f"/tmp/datamind_{uploaded.name}"
-    with open(tmp, "wb") as f: f.write(uploaded.getvalue())
+    MAX_BYTES = 20 * 1024 * 1024
+    if uploaded.size > MAX_BYTES:
+        st.error(f"File too large. Maximum upload size is {MAX_BYTES // (1024 * 1024)} MB.")
+        st.stop()
 
-    if tmp.endswith(".csv"):                df = pd.read_csv(tmp)
-    elif tmp.endswith((".xlsx",".xls")):    df = pd.read_excel(tmp)
-    else:                                   df = pd.read_parquet(tmp)
+    suffix = os.path.splitext(uploaded.name)[1].lower()
+    with tempfile.NamedTemporaryFile(prefix="datamind_", suffix=suffix, delete=False) as tf:
+        tf.write(uploaded.getvalue())
+        tmp = tf.name
+    try:
+        if suffix == ".csv":
+            df = pd.read_csv(tmp)
+        elif suffix in (".xlsx", ".xls"):
+            df = pd.read_excel(tmp)
+        else:
+            df = pd.read_parquet(tmp)
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
 
     tt = task_type
     if tt == "auto":
