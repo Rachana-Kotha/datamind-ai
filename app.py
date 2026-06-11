@@ -14,7 +14,7 @@ Fix: generate bytes on form submit → store in session_state →
 import streamlit as st
 import pandas as pd
 import numpy as np
-import os, sys, io, json
+import os, sys, io, json, tempfile, html
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -140,7 +140,7 @@ with st.sidebar:
                         ("🔍","Rex","Critic"),("💻","Cleo","Code"),("🧠","Synthesis","Writer")]:
         st.markdown(f"{em} **{nm}** — {rl}")
     st.markdown("---")
-    st.markdown("**[⭐ Star on GitHub](https://github.com/YOUR_USERNAME/datamind-ai)**")
+    st.markdown("**[⭐ Star on GitHub](https://github.com/Rachana-Kotha/datamind-ai)**")
 
 # ── Landing ───────────────────────────────────────────────────────────────────
 if not uploaded:
@@ -168,12 +168,27 @@ if run_btn:
     for k in ["pdf_bytes","docx_bytes","md_bytes","report_generated","user_info"]:
         st.session_state[k] = None
 
-    tmp = f"/tmp/datamind_{uploaded.name}"
-    with open(tmp, "wb") as f: f.write(uploaded.getvalue())
+    MAX_BYTES = 20 * 1024 * 1024
+    if uploaded.size > MAX_BYTES:
+        st.error(f"File too large. Maximum upload size is {MAX_BYTES // (1024 * 1024)} MB.")
+        st.stop()
 
-    if tmp.endswith(".csv"):                df = pd.read_csv(tmp)
-    elif tmp.endswith((".xlsx",".xls")):    df = pd.read_excel(tmp)
-    else:                                   df = pd.read_parquet(tmp)
+    suffix = os.path.splitext(uploaded.name)[1].lower()
+    with tempfile.NamedTemporaryFile(prefix="datamind_", suffix=suffix, delete=False) as tf:
+        tf.write(uploaded.getvalue())
+        tmp = tf.name
+    try:
+        if suffix == ".csv":
+            df = pd.read_csv(tmp)
+        elif suffix in (".xlsx", ".xls"):
+            df = pd.read_excel(tmp)
+        else:
+            df = pd.read_parquet(tmp)
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
 
     tt = task_type
     if tt == "auto":
@@ -188,8 +203,12 @@ if run_btn:
         color = {"Ada":"#10b981","Max":"#3b82f6","Iris":"#f59e0b",
                  "Rex":"#ef4444","Cleo":"#8b5cf6","Synthesis":"#a78bfa"}.get(name,"#9d9db8")
         with agent_cont:
-            st.markdown(f'<div class="agent-card"><div class="agent-name" style="color:{color}">{emoji} {name}</div><div class="agent-msg">{msg}</div></div>',
-                        unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="agent-card"><div class="agent-name" style="color:{color}">'
+                f'{html.escape(str(emoji))} {html.escape(str(name))}</div>'
+                f'<div class="agent-msg">{html.escape(str(msg))}</div></div>',
+                unsafe_allow_html=True,
+            )
 
     from agents.orchestrator import Orchestrator, AgentMemory
     from agents.council import EDAAgent, MLAgent, InsightAgent, CriticAgent, CodeAgent
@@ -197,7 +216,7 @@ if run_btn:
     from src.kpi_engine import select_top_kpis, generate_kpi_stories, generate_data_narrative
 
     memory = AgentMemory()
-    orch   = Orchestrator(progress_callback=on_thought)
+    orch   = Orchestrator(progress_callback=on_thought, memory=memory)
     for Cls in [EDAAgent, MLAgent, InsightAgent, CriticAgent, CodeAgent]:
         orch.register_agent(Cls(memory=memory, progress_callback=on_thought))
     orch.register_agent(SynthesisAgent(memory=memory, groq_api_key=groq_key or None,
@@ -272,7 +291,7 @@ st.markdown(f"""
   <span style="color:#a78bfa;font-weight:700;font-size:1rem;">🔗 Your shareable report link</span><br>
   <span style="color:#c5c3e0;font-size:0.82rem;">Share with anyone — you get an email with their details when they view it.</span>
   <div style="background:#0d1117;border-radius:8px;padding:10px 14px;margin-top:10px;
-       word-break:break-all;font-family:monospace;font-size:0.8rem;color:#e2e8f0;">{share_url}</div>
+       word-break:break-all;font-family:monospace;font-size:0.8rem;color:#e2e8f0;">{html.escape(str(share_url))}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -298,18 +317,18 @@ with tab_kpi:
         else:                             val_str = f"{mean_val:.3f}"
 
         ti   = "▲" if trend=="up" else "▼" if trend=="down" else "●"
-        tc   = f"kpi-trend-{trend}"
+        tc   = f"kpi-trend-{html.escape(str(trend))}"
         ch   = f"<span style='color:#9d9db8;font-size:0.78rem'>r={corr:.2f} vs target</span>" if corr else ""
         with cols[i % 2]:
             st.markdown(f"""<div class="kpi-card">
   <div class="kpi-lbl">KPI {i+1}</div>
-  <div style="font-size:1rem;font-weight:700;color:#e8e6ff;margin:4px 0">{col_name}</div>
-  <div class="kpi-val">{val_str}</div>
+  <div style="font-size:1rem;font-weight:700;color:#e8e6ff;margin:4px 0">{html.escape(str(col_name))}</div>
+  <div class="kpi-val">{html.escape(str(val_str))}</div>
   <div style="display:flex;gap:12px;margin-top:6px;align-items:center">
     <span class="{tc}">{ti} {trend_pct:+.1f}%</span>{ch}
     <span style="color:#6b6b8a;font-size:0.78rem">n={kpi.get('count',0):,}</span>
   </div>
-  <div class="kpi-story">{story}</div>
+  <div class="kpi-story">{html.escape(str(story))}</div>
 </div>""", unsafe_allow_html=True)
 
 # ── Story tab ─────────────────────────────────────────────────────────────────
@@ -340,8 +359,10 @@ with tab_models:
 with tab_debate:
     for i, e in enumerate(debate):
         cls = "debate-left" if i%2==0 else "debate-right"
-        st.markdown(f'<div class="debate-bubble {cls}"><strong>{e["emoji"]} {e["agent"]}</strong><br>{e["message"]}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="debate-bubble {cls}"><strong>{html.escape(str(e.get("emoji","")))} {html.escape(str(e.get("agent","")))}</strong><br>{html.escape(str(e.get("message","")))}</div>',
+            unsafe_allow_html=True,
+        )
 
 # ── Risks tab ─────────────────────────────────────────────────────────────────
 with tab_risks:
@@ -350,11 +371,15 @@ with tab_risks:
     for r in risks:
         sev = r.get("severity","low")
         css = "risk-high" if sev in ["high","critical"] else "risk-medium" if sev=="medium" else "risk-high"
-        st.markdown(f'<div class="{css}"><strong>[{sev.upper()}] {r.get("risk","")}</strong><br>{r.get("detail","")}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="{css}"><strong>[{html.escape(str(sev).upper())}] {html.escape(str(r.get("risk","")))}</strong><br>{html.escape(str(r.get("detail","")))}</div>',
+            unsafe_allow_html=True,
+        )
     for ins in insights:
-        st.markdown(f'<div class="insight-card">💡 <strong>{ins.get("title","")}</strong><br>{ins.get("detail","")}</div>',
-                    unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="insight-card">💡 <strong>{html.escape(str(ins.get("title","")))}</strong><br>{html.escape(str(ins.get("detail","")))}</div>',
+            unsafe_allow_html=True,
+        )
 
 # ── Code tab ──────────────────────────────────────────────────────────────────
 with tab_code:

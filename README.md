@@ -31,7 +31,7 @@ Five agents with distinct personalities run in parallel, read each other's findi
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/datamind-ai.git
+git clone https://github.com/Rachana-Kotha/datamind-ai.git
 cd datamind-ai
 pip install -r requirements.txt
 
@@ -42,7 +42,7 @@ streamlit run app.py
 python run.py --demo
 
 # CLI — your dataset
-python run.py --file titanic.csv --target Survived
+python run.py --file sample_data/sample_titanic.csv --target Survived
 ```
 
 **Optional (for AI-written reports):** Get a free API key at [console.groq.com](https://console.groq.com) — no credit card needed.

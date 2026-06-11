@@ -291,8 +291,8 @@ class MLAgent(BaseAgent):
                         all_names.extend(trans.named_steps["enc"].get_feature_names_out(cols))
                     else:
                         all_names.extend(cols)
-                n = min(len(all_names), len(imps), 15)
-                pairs = sorted(zip(all_names[:n], imps[:n]), key=lambda x: x[1], reverse=True)
+                n_pair = min(len(all_names), len(imps))
+                pairs = sorted(zip(all_names[:n_pair], imps[:n_pair]), key=lambda x: x[1], reverse=True)[:15]
                 fi = {"features": [x[0] for x in pairs], "importances": [round(float(x[1]), 6) for x in pairs]}
         except Exception:
             pass

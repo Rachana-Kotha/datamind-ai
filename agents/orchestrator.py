@@ -90,14 +90,18 @@ class Orchestrator:
     and the Synthesis Agent wraps everything into a final report.
     """
 
-    def __init__(self, progress_callback: Optional[Callable] = None):
-        self.memory = AgentMemory()
+    def __init__(self, progress_callback: Optional[Callable] = None,
+                 memory: Optional[AgentMemory] = None):
+        self.memory = memory if memory is not None else AgentMemory()
         self.progress_callback = progress_callback
         self.agents: List[BaseAgent] = []
         self.pipeline_log: List[Dict] = []
         self.start_time: Optional[float] = None
 
     def register_agent(self, agent: BaseAgent):
+        # Ensure every agent shares the orchestrator's memory so that
+        # result["memory"] reflects what agents actually wrote.
+        agent.memory = self.memory
         self.agents.append(agent)
 
     def _log(self, event: str, detail: str = ""):

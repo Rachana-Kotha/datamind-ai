@@ -51,7 +51,7 @@ def main():
         print(f"  {emoji} [{name}] {msg}")
 
     memory = AgentMemory()
-    orch = Orchestrator(progress_callback=cb)
+    orch = Orchestrator(progress_callback=cb, memory=memory)
     for Cls in [EDAAgent, MLAgent, InsightAgent, CriticAgent, CodeAgent]:
         orch.register_agent(Cls(memory=memory, progress_callback=cb))
     orch.register_agent(SynthesisAgent(memory=memory, groq_api_key=args.groq_key, progress_callback=cb))

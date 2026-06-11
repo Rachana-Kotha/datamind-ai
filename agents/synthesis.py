@@ -182,11 +182,17 @@ Total length: 400-600 words."""
         risk_text = "\n".join([f"- **[{r['severity'].upper()}]** {r['risk']}: {r['detail']}" for r in risks[:3]]) if risks else "- No critical risks detected."
         insight_text = "\n".join([f"- {i['title']}: {i['detail']}" for i in insights[:4]]) if insights else "- Dataset looks healthy."
 
+        if task_type == "classification":
+            rating = "excellent" if best_score > 0.9 else "solid" if best_score > 0.75 else "moderate"
+            score_line = f"which is {rating} performance."
+        else:
+            score_line = f"explaining {best_score:.1%} of variance in the target."
+
         return f"""## Executive summary
 
-This dataset contains **{shape.get('rows', 0):,} rows** targeting `{target_col}` ({task_type}). 
-The best performing model is **{best_model}** with a {metric_name} of **{best_score:.4f}**, 
-{"which is {'excellent' if best_score > 0.9 else 'solid' if best_score > 0.75 else 'moderate'} performance." if task_type == "classification" else f"explaining {best_score:.1%} of variance in the target."}
+This dataset contains **{shape.get('rows', 0):,} rows** targeting `{target_col}` ({task_type}).
+The best performing model is **{best_model}** with a {metric_name} of **{best_score:.4f}**,
+{score_line}
 
 ## What the data tells us
 
